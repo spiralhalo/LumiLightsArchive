@@ -8,6 +8,7 @@
 #include frex:shaders/api/material.glsl
 #include frex:shaders/api/fragment.glsl
 #include frex:shaders/api/sampler.glsl
+#include frex:shaders/api/camera.glsl
 #include frex:shaders/lib/math.glsl
 #include frex:shaders/lib/color.glsl
 #include frex:shaders/lib/noise/noise3d.glsl
@@ -255,13 +256,14 @@ bool ww_waterTest(in frx_FragmentData fragData) {
 	return vertexBlue && waterTransparent && diffuse;
 }
 
-void ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
+float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	// make default water texture shinier. purely optional
 	a.rgb *= fragData.spriteColor.rgb;
 	a.rgb *= 0.8;
 
 	vec3 surfaceNormal = fragData.vertexNormal*frx_normalModelMatrix();
 
+	float noise = 0;
 	// apply simplex noise to the normal to create fake wavyness
 	// check for up-facing water only. this *might* cause artifacts
 	// TODO: make smoother check to remove artifacts. possibly by noiseAmp *= smoothstep(0.9, 0.95, surfaceNormal.y)
@@ -276,7 +278,7 @@ void ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 		float microSample = 0.01 * noiseScale;
 
 		// base noise
-		float noise = l2_noise(wwv_aPos, renderTime, noiseScale, noiseAmp);
+		noise = l2_noise(wwv_aPos, renderTime, noiseScale, noiseAmp);
 
 		// normal recalculation
 		vec3 noiseOrigin = vec3(0, noise, 0);
@@ -304,6 +306,8 @@ void ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	// apply brightness factor
 	vec3 upMoonLight = l2_moonLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), vec3(0,1,0));
 	a.rgb *= blockLight + sunColor * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
+
+	return noise;
 }
 
 #if AO_SHADING_MODE != AO_MODE_NONE
@@ -330,8 +334,11 @@ void main() {
 
 	a.rgb = hdr_gammaAdjust(a.rgb);
 
-	if(ww_waterTest(fragData)){
-		ww_waterPipeline(a, fragData);
+	bool isWater = ww_waterTest(fragData);
+	float waterY = 0;
+
+	if(isWater){
+		waterY = ww_waterPipeline(a, fragData);
 	} else {
 		// If diffuse is disabled (e.g. grass) then the normal points up by default
 		vec3 normalForLightCalc = fragData.diffuse?fragData.vertexNormal*frx_normalModelMatrix():vec3(0,1,0);
@@ -377,6 +384,7 @@ void main() {
 	gl_FragDepth = gl_FragCoord.z;
 
 #if TARGET_EMISSIVE > 0
-	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, 0.0, 0.0, 1.0);
+	bool isBlue = fragData.vertexColor.b > fragData.vertexColor.g * 0.8 && fragData.vertexColor.b > fragData.vertexColor.r;
+	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, isBlue?0.01+max(0,waterY)*10:0.0, frx_cameraView().y, 1.0);
 #endif
 }
