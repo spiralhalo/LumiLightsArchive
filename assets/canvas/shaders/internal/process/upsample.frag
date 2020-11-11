@@ -14,12 +14,11 @@ varying vec2 _cvv_texcoord;
 
 void main() {
   vec4 input = texture2D(cvu_input, _cvv_texcoord);
-  
-	float waterData = input.a;
-	// float cameraData = e.b;
-	// float hueData = hsv.r;
-	// float valueData = hsv.v;
 	vec4 sample = _cvu_lod == 6 ? vec4(0) : frx_sampleTent(cvu_prior, _cvv_texcoord, _cvu_distance / _cvu_size, _cvu_lod + 1);
-  gl_FragData[0] = vec4((texture2DLod(cvu_input, _cvv_texcoord, _cvu_lod) + sample).rgb, waterData);
+	float valueData = (texture2DLod(cvu_input, _cvv_texcoord, _cvu_lod) + sample).r;
+	float hueData = input.g;
+	float cameraData = input.b;
+	float waterData = input.a;
+	gl_FragData[0] = vec4(valueData, hueData, cameraData, waterData);
   // gl_FragData[0] = texture2DLod(cvu_input, _cvv_texcoord, _cvu_lod) + sample;
 }

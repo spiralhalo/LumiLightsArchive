@@ -261,7 +261,8 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	a.rgb *= fragData.spriteColor.rgb;
 	a.rgb *= 0.8;
 
-	vec3 surfaceNormal = fragData.vertexNormal*frx_normalModelMatrix();
+	vec3 rawNormal = fragData.vertexNormal*frx_normalModelMatrix();
+	vec3 surfaceNormal = rawNormal;
 
 	float noise = 0;
 	// apply simplex noise to the normal to create fake wavyness
@@ -305,9 +306,10 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 
 	// apply brightness factor
 	vec3 upMoonLight = l2_moonLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), vec3(0,1,0));
-	a.rgb *= blockLight + sunColor * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
+	vec3 light = blockLight + sunColor * skyLight * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
+	a.rgb *= light;
 
-	return noise;
+	return max(0,noise*10)*frx_luminance(light)*max(0,rawNormal.y);
 }
 
 #if AO_SHADING_MODE != AO_MODE_NONE
@@ -385,6 +387,6 @@ void main() {
 
 #if TARGET_EMISSIVE > 0
 	bool isBlue = fragData.vertexColor.b > fragData.vertexColor.g * 0.8 && fragData.vertexColor.b > fragData.vertexColor.r;
-	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, isBlue?0.01+max(0,waterY)*10:0.0, frx_cameraView().y, 1.0);
+	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, isBlue?0.01+waterY:0.0, frx_cameraView().y*0.5+0.5, 1.0);
 #endif
 }
