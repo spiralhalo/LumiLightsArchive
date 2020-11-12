@@ -30,8 +30,8 @@ vec4 l2_ssr_reflection(float water){
 	vec2 current = _cvv_texcoord;
 	while(texture2DLod(_cvu_bloom, current, 0).a > 0){
 		current.y += sampleUp;
-		if (current.y > 1.0){
-			return vec4(0.0);	
+		if (current.y > 1.0 || dist_to_up > maxDist){
+			return vec4(0.0);
 		}
 		dist_to_up += sampleUp;
 	}
