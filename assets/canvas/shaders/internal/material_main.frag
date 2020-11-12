@@ -306,10 +306,9 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 
 	// apply brightness factor
 	vec3 upMoonLight = l2_moonLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), vec3(0,1,0));
-	vec3 light = blockLight + sunColor * skyLight * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
-	a.rgb *= light;
+	a.rgb *= blockLight + sunColor * skyLight * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
 
-	return max(0,noise*6)*frx_luminance(light);
+	return max(0,noise*6);
 }
 
 #if AO_SHADING_MODE != AO_MODE_NONE
