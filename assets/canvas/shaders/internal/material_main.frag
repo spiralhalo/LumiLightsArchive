@@ -279,7 +279,7 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 		float microSample = 0.01 * noiseScale;
 
 		// base noise
-		noise = l2_noise(wwv_aPos, renderTime, noiseScale, noiseAmp);
+		noise = l2_noise(worldPos, renderTime, noiseScale, noiseAmp);
 
 		// normal recalculation
 		vec3 noiseOrigin = vec3(0, noise, 0);
