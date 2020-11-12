@@ -308,7 +308,7 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	vec3 light = blockLight + sunColor * skyLight * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
 	a.rgb *= light;
 
-	return max(0,noise*10)*frx_luminance(light)*smoothstep(0.9,1.0,rawNormal.y);
+	return max(0,noise*6)*frx_luminance(light);
 }
 
 #if AO_SHADING_MODE != AO_MODE_NONE
@@ -384,7 +384,7 @@ void main() {
 	gl_FragDepth = gl_FragCoord.z;
 
 #if TARGET_EMISSIVE > 0
-	bool isBlue = fragData.vertexColor.b > fragData.vertexColor.g * 0.8 && fragData.vertexColor.b > fragData.vertexColor.r;
+	bool isBlue = fragData.vertexColor.b > fragData.vertexColor.g * 0.8 && fragData.vertexColor.b > fragData.vertexColor.r && fragData.vertexNormal.y > 0.9;
 	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, isBlue?0.01+waterY:0.0, 0.0, 1.0);
 #endif
 }

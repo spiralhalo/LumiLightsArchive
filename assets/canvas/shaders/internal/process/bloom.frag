@@ -17,9 +17,9 @@ varying vec2 _cvv_texcoord;
 const float sampleUp = 0.001;
 const float bias = 0.05;
 const float maxDist = 0.1;
-// const float sampleSideFade = 0.001;
-// const float maxSideFade = 0.01;
-// const float addSideFade = 0.1;
+const float sampleUpFade = 0.001;
+const float maxUpFade = 0.01;
+const float addUpFade = 0.2; // sampleUpFade/maxUpFade
 
 float l2_ssr_getWater(vec2 coords){
 	return texture2DLod(_cvu_bloom, coords, 0).a;
@@ -28,7 +28,7 @@ float l2_ssr_getWater(vec2 coords){
 vec4 l2_ssr_reflection(float water){
 	float dist_to_up = 0;
 	vec2 current = _cvv_texcoord;
-	while(texture2D(_cvu_bloom, current).a > 0){
+	while(texture2DLod(_cvu_bloom, current, 0).a > 0){
 		current.y += sampleUp;
 		if (current.y > 1.0){
 			return vec4(0.0);	
@@ -37,25 +37,21 @@ vec4 l2_ssr_reflection(float water){
 	}
 	float upCoord = _cvv_texcoord.y+dist_to_up*2 + bias + dist_to_up*water;
 	float groundCoord = _cvv_texcoord.y+dist_to_up;
-	// float currentSideFade = 0;
-	// float sideFade = 0;
-	// while(currentSideFade < maxSideFade){
-	// 	sideFade += (l2_ssr_getWater(vec2(_cvv_texcoord.x+currentSideFade, groundCoord)) > 0)?addSideFade:0;
-	// 	currentSideFade += sampleSideFade;
-	// }
-	// currentSideFade = 0;
-	// while(currentSideFade > -maxSideFade){
-	// 	sideFade += (l2_ssr_getWater(vec2(_cvv_texcoord.x+currentSideFade, groundCoord)) > 0)?addSideFade:0;
-	// 	currentSideFade -= sampleSideFade;
-	// }
+	float currentUpFade = 0;
+	float upFade = 0;
+	float xWater = (0.5-water)*(_cvv_texcoord.x-0.5)*0.2;
+	while(currentUpFade < maxUpFade){
+		upFade += (l2_ssr_getWater(vec2(_cvv_texcoord.x, groundCoord+currentUpFade)) > 0)?addUpFade:0;
+		currentUpFade += sampleUpFade;
+	}
 	bool upWater = l2_ssr_getWater(vec2(_cvv_texcoord.x, upCoord)) > 0;
 	if(upCoord>1.0 || dist_to_up > maxDist || upWater){
 		return vec4(0.0);
 	} else {
 		return smoothstep(maxDist,0.0,dist_to_up)
 			* smoothstep(1.0,0.95,upCoord)
-			//* (1-sideFade*smoothstep(0.0,maxDist,dist_to_up))
-			* texture2D(_cvu_base, vec2(_cvv_texcoord.x, upCoord));
+			* smoothstep(1,0,upFade*smoothstep(0.0,maxDist,dist_to_up))
+			* texture2D(_cvu_base, vec2(_cvv_texcoord.x+xWater, upCoord));
 	}
 }
 
