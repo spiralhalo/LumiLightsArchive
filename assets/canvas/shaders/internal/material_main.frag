@@ -262,6 +262,7 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 
 	vec3 rawNormal = fragData.vertexNormal*frx_normalModelMatrix();
 	vec3 surfaceNormal = rawNormal;
+	vec3 worldPos = frx_modelOriginWorldPos() + wwv_aPos;
 
 	float noise = 0;
 	// apply simplex noise to the normal to create fake wavyness
@@ -282,8 +283,8 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 
 		// normal recalculation
 		vec3 noiseOrigin = vec3(0, noise, 0);
-		vec3 noiseTangent = vec3(microSample, l2_noise(wwv_aPos + vec3(microSample,0,0), renderTime, noiseScale, noiseAmp), 0) - noiseOrigin;
-		vec3 noiseBitangent = vec3(0, l2_noise(wwv_aPos + vec3(0,0,microSample), renderTime, noiseScale, noiseAmp), microSample) - noiseOrigin;
+		vec3 noiseTangent = vec3(microSample, l2_noise(worldPos + vec3(microSample,0,0), renderTime, noiseScale, noiseAmp), 0) - noiseOrigin;
+		vec3 noiseBitangent = vec3(0, l2_noise(worldPos + vec3(0,0,microSample), renderTime, noiseScale, noiseAmp), microSample) - noiseOrigin;
 
 		// noisy normal
 		surfaceNormal = normalize(cross(noiseBitangent, noiseTangent));
