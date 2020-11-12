@@ -8,7 +8,6 @@
 #include frex:shaders/api/material.glsl
 #include frex:shaders/api/fragment.glsl
 #include frex:shaders/api/sampler.glsl
-#include frex:shaders/api/camera.glsl
 #include frex:shaders/lib/math.glsl
 #include frex:shaders/lib/color.glsl
 #include frex:shaders/lib/noise/noise3d.glsl
@@ -309,7 +308,7 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	vec3 light = blockLight + sunColor * skyLight * skyLight + upMoonLight + l2_baseAmbient() + l2_skylessLight(surfaceNormal);
 	a.rgb *= light;
 
-	return max(0,noise*10)*frx_luminance(light)*max(0,rawNormal.y);
+	return max(0,noise*10)*frx_luminance(light)*smoothstep(0.9,1.0,rawNormal.y);
 }
 
 #if AO_SHADING_MODE != AO_MODE_NONE
@@ -336,10 +335,9 @@ void main() {
 
 	a.rgb = hdr_gammaAdjust(a.rgb);
 
-	bool isWater = ww_waterTest(fragData);
 	float waterY = 0;
 
-	if(isWater){
+	if(ww_waterTest(fragData)){
 		waterY = ww_waterPipeline(a, fragData);
 	} else {
 		// If diffuse is disabled (e.g. grass) then the normal points up by default
@@ -387,6 +385,6 @@ void main() {
 
 #if TARGET_EMISSIVE > 0
 	bool isBlue = fragData.vertexColor.b > fragData.vertexColor.g * 0.8 && fragData.vertexColor.b > fragData.vertexColor.r;
-	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, isBlue?0.01+waterY:0.0, frx_cameraView().y*0.5+0.5, 1.0);
+	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, isBlue?0.01+waterY:0.0, 0.0, 1.0);
 #endif
 }
