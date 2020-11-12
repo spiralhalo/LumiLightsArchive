@@ -15,7 +15,7 @@ uniform float cvu_intensity;
 varying vec2 _cvv_texcoord;
 
 const float sampleUp = 0.001;
-const float bias = 0.05;
+const float bias = 0.04;
 const float maxDist = 0.1;
 const float sampleUpFade = 0.001;
 const float maxUpFade = 0.01;
@@ -69,7 +69,7 @@ void main() {
 
 	vec4 bloomResult = clamp(frx_toGamma(vec4(color, 1.0)), 0.0, 1.0);
 	if (water > 0){
-		gl_FragData[0] = bloomResult + l2_ssr_reflection(water) * 0.5;
+		gl_FragData[0] = bloomResult + l2_ssr_reflection(water) * 0.4;
 	} else {
 		gl_FragData[0] = bloomResult;
 	}
