@@ -385,6 +385,6 @@ void main() {
 
 #if TARGET_EMISSIVE > 0
 	bool isBlue = fragData.vertexColor.b > fragData.vertexColor.g * 0.8 && fragData.vertexColor.b > fragData.vertexColor.r && fragData.vertexNormal.y > 0.9;
-	gl_FragData[TARGET_EMISSIVE] = vec4(0.01+fragData.emissivity*0.99, isBlue?0.01+waterY:0.0, 0.0, 1.0);
+	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, 1.0, isBlue?0.01+waterY:0.0, 1.0);
 #endif
 }

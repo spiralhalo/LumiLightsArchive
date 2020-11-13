@@ -20,5 +20,5 @@ void main() {
 
 	vec4 c = frx_fromGamma(texture2D(_cvu_base, _cvv_texcoord));
 	
-	gl_FragData[0] = vec4(c.rgb * bloom, e.g);
+	gl_FragData[0] = vec4(c.rgb * bloom, e.b);
 }
