@@ -1,3 +1,10 @@
+/*
+	Lumi Lights - A shader pack for Canvas
+	Copyright (c) 2020 spiralhalo and Contributors
+
+	See `README.md` for license notice.
+ */
+
 #include canvas:shaders/internal/header.glsl
 #include canvas:shaders/internal/varying.glsl
 #include canvas:shaders/internal/diffuse.glsl
@@ -41,6 +48,10 @@ float hdr_gammaAdjust(float x){
 
 vec3 hdr_gammaAdjust(vec3 x){
 	return pow(x, vec3(hdr_gamma));
+}
+
+vec3 hdr_vibrantTonemap(in vec3 hdrColor){
+	return hdrColor / (frx_luminance(hdrColor) + vec3(1.0));
 }
 
 vec3 hdr_reinhardTonemap(in vec3 hdrColor){
@@ -161,7 +172,7 @@ vec3 l2_baseAmbient(){
 }
 
 vec3 l2_sunColor(float time){
-	vec3 sunColor = hdr_gammaAdjust(vec3(1.0, 1.0, 0.8)) * hdr_sunStr;
+	vec3 sunColor = hdr_gammaAdjust(vec3(1.0, 1.0, 1.0)) * hdr_sunStr;
 	vec3 sunriseColor = hdr_gammaAdjust(vec3(1.0, 0.8, 0.4)) * hdr_sunStr * hdr_relSunHorizon;
 	vec3 sunsetColor = hdr_gammaAdjust(vec3(1.0, 0.6, 0.4)) * hdr_sunStr * hdr_relSunHorizon;
 	if(time > 0.94){
@@ -266,7 +277,6 @@ bool ww_waterTest(in frx_FragmentData fragData) {
 float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	// make default water texture shinier. purely optional
 	a.rgb *= fragData.spriteColor.rgb;
-	a.rgb *= 0.8;
 
 	vec3 rawNormal = fragData.vertexNormal*frx_normalModelMatrix();
 	vec3 surfaceNormal = rawNormal;
@@ -306,7 +316,7 @@ float ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	// mix with ambient color before adding specular light
 	a.rgb = mix (a.rgb, a.rgb*l2_ambientColor(frx_worldTime()), skyLight);
 
-	// add specular light
+	// add specular light 
 	float skyAccess = smoothstep(0.89, 1.0, fragData.light.y);
 	float specular = l2_specular(frx_worldTime(), surfaceNormal, wwv_aPos, wwv_cameraPos, 100);
 	a.rgb += sunColor * skyAccess * skyLight * specular;
@@ -363,7 +373,7 @@ void main() {
 	}
 
 	a.rgb *= hdr_finalMult;
-	a.rgb = pow(hdr_reinhardTonemap(a.rgb), vec3(1.0 / hdr_gamma));
+	a.rgb = pow(hdr_vibrantTonemap(a.rgb), vec3(1.0 / hdr_gamma));
 
 	// a.rgb = l2_what(a.rgb);
 	
