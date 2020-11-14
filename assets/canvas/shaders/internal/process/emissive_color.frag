@@ -1,7 +1,9 @@
 /*
 	Derived from Canvas source code (https://github.com/grondag/canvas/)
 
-	Changes are made to add bloom to sky fragments.
+	Changes are made to add bloom to sky fragments and carry a
+	"water" flag into the bloom shader to create a screenspace
+	reflection effect (a hack).
 */
 
 #include canvas:shaders/internal/process/header.glsl

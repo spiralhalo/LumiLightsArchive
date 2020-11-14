@@ -1,3 +1,11 @@
+/*
+    Derived from Canvas source code (https://github.com/grondag/canvas/)
+
+    Changes are made to carry a "water" flag into the bloom shader
+    to create a screenspace reflection effect (a hack).
+*/
+
+
 #include canvas:shaders/internal/process/header.glsl
 #include frex:shaders/lib/sample.glsl
 

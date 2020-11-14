@@ -1,3 +1,14 @@
+/*
+	Lumi Lights - A shader pack for Canvas
+	Copyright (c) 2020 spiralhalo and Contributors
+
+	See `README.md` for license notice.
+
+	The bloom functionality is derived from Canvas source code (https://github.com/grondag/canvas/)
+
+	Lumi Lights adds more functionality to apply reflection effect on water surfaces.
+*/
+
 #include canvas:shaders/internal/process/header.glsl
 #include frex:shaders/lib/color.glsl
 #include frex:shaders/lib/sample.glsl

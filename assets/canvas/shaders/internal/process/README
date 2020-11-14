@@ -1,0 +1,4 @@
+Files here are mostly derived from Canvas source code (https://github.com/grondag/canvas/)
+with little modifications. They are here to ensure that the reflection effect either works
+perfectly or not at all instead of working weirdly due to possible minute changes in Canvas
+source code.
