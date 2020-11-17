@@ -1,8 +1,8 @@
 /*
-	Lumi Lights - A shader pack for Canvas
-	Copyright (c) 2020 spiralhalo and Contributors
-
-	See `README.md` for license notice.
+ *	Lumi Lights - A shader pack for Canvas
+ *	Copyright (c) 2020 spiralhalo and Contributors
+ *
+ *	See `README.md` for license notice.
  */
 
 #include canvas:shaders/internal/header.glsl
@@ -270,10 +270,10 @@ bool ww_waterTest(in frx_FragmentData fragData) {
 	return vertexBlue && waterTransparent && diffuse;
 }
 
-void ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
+void ww_waterPipeline(inout vec4 a, inout frx_FragmentData fragData) {
 	// make default water texture shinier. purely optional
 	a.rgb *= fragData.spriteColor.rgb;
-	a.rgb *= 0.8;
+	a.rgb *= 2;
 
 	vec3 surfaceNormal = fragData.vertexNormal*frx_normalModelMatrix();
 	vec3 worldPos = frx_modelOriginWorldPos() + wwv_aPos;
@@ -302,7 +302,10 @@ void ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 		// noisy normal
 		surfaceNormal = normalize(cross(noiseBitangent, noiseTangent));
 		// a.rgb = surfaceNormal;
+
+        fragData.vertexNormal = surfaceNormal;
 	}
+    fragData.roughness = 0.0;
 
 	float skyLight = l2_skyLight(fragData.light.y, frx_ambientIntensity());
 	vec3 blockLight = l2_blockLight(fragData.light.x);
@@ -316,6 +319,7 @@ void ww_waterPipeline(inout vec4 a, in frx_FragmentData fragData) {
 	float specular = l2_specular(frx_worldTime(), surfaceNormal, wwv_aPos, wwv_cameraPos, 100);
 	a.rgb += sunColor * skyAccess * skyLight * specular;
 	a.a += specular * skyAccess * skyLight;// * sunColor.r;
+	a.a = min(a.a, 0.99);
 
 	// apply brightness factor
 	vec3 upMoonLight = l2_moonLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), vec3(0,1,0));
@@ -334,6 +338,7 @@ void main() {
 	texture2D(frxs_spriteAltas, _cvv_texcoord, _cv_getFlag(_CV_FLAG_UNMIPPED) * -4.0),
 	_cvv_color,
 	frx_matEmissive() ? 1.0 : 0.0,
+	1.0, // Roughness (WIP)
 	!frx_matDisableDiffuse(),
 	!frx_matDisableAo(),
 	_cvv_normal,
@@ -392,7 +397,16 @@ void main() {
 	gl_FragData[TARGET_BASECOLOR] = _cv_fog(a);
 	gl_FragDepth = gl_FragCoord.z;
 
-#if TARGET_EMISSIVE > 0
-	gl_FragData[TARGET_EMISSIVE] = vec4(fragData.emissivity, 1.0, 0.0, 1.0);
+#if TARGET_EXTRAS > 0
+	gl_FragData[TARGET_EXTRAS] = vec4(fragData.emissivity, fragData.roughness, 0.0, 1.0);
+#endif
+
+#if TARGET_NORMAL > 0
+	if(_cvu_model_origin_type == MODEL_ORIGIN_ENTITY){
+		gl_FragData[TARGET_NORMAL] = vec4(fragData.vertexNormal.xyz * vec3(0.5) + vec3(0.5), a.a < 1 ? 1 : 0);
+	} else {
+		gl_FragData[TARGET_NORMAL] = vec4((gl_ModelViewMatrix * vec4(fragData.vertexNormal, 0.0)).xyz
+											* vec3(0.5) + vec3(0.5), a.a < 1 ? 1 : 0 );
+	}
 #endif
 }
