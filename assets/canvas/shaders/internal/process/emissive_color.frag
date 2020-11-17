@@ -1,10 +1,10 @@
 /*
-	Derived from Canvas source code (https://github.com/grondag/canvas/)
-
+ *	Derived from Canvas source code (https://github.com/grondag/canvas/)
+ *
 	Changes are made to add bloom to sky fragments and carry a
 	"water" flag into the bloom shader to create a screenspace
 	reflection effect (a hack).
-*/
+ */
 
 #include canvas:shaders/internal/process/header.glsl
 #include frex:shaders/lib/color.glsl
@@ -28,5 +28,5 @@ void main() {
 
 	vec4 c = frx_fromGamma(texture2D(_cvu_base, _cvv_texcoord));
 	
-	gl_FragData[0] = vec4(c.rgb * bloom, e.b);
+	gl_FragData[0] = vec4(c.rgb * bloom, e.r);
 }
