@@ -1,5 +1,6 @@
 /*
  *	Derived from Canvas source code (https://github.com/grondag/canvas/)
+ *
  *	Changes are made to add bloom to sky fragments.
  */
 
