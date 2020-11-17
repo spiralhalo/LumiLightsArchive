@@ -1,8 +1,8 @@
 /*
-	Lumi Lights - A shader pack for Canvas
-	Copyright (c) 2020 spiralhalo and Contributors
-
-	See `README.md` for license notice.
+ *  Lumi Lights - A shader pack for Canvas
+ *  Copyright (c) 2020 spiralhalo and Contributors
+ *
+ *  See `README.md` for license notice.
  */
 
 #include canvas:shaders/internal/header.glsl
@@ -26,7 +26,6 @@
   canvas:shaders/internal/material_main.frag
 ******************************************************/
 
-#define M_2PI 6.283185307179586476925286766559
 #define M_PI 3.1415926535897932384626433832795
 
 const float hdr_sunStr = 4;
@@ -90,14 +89,14 @@ vec3 l2_emissiveLight(float emissivity){
 float l2_skyLight(float skyLight, float intensity)
 {
 	float sl = l2_clampScale(0.03125, 1.0, skyLight);
-	return hdr_gammaAdjust(sl * intensity);
+	return hdr_gammaAdjust(sl) * intensity;
 }
 
 vec3 l2_ambientColor(float time){
 	vec3 ambientColor = hdr_gammaAdjust(vec3(0.6, 0.9, 1.0)) * hdr_sunStr * hdr_relAmbient;
 	vec3 sunriseAmbient = hdr_gammaAdjust(vec3(1.0, 0.8, 0.4)) * hdr_sunStr * hdr_relAmbient * hdr_relSunHorizon;
 	vec3 sunsetAmbient = hdr_gammaAdjust(vec3(1.0, 0.6, 0.2)) * hdr_sunStr * hdr_relAmbient * hdr_relSunHorizon;
-	vec3 nightAmbient = hdr_gammaAdjust(vec3(0.3, 0.3, 1.0)) * hdr_moonStr * hdr_relAmbient;
+	vec3 nightAmbient = hdr_gammaAdjust(vec3(1.0, 1.0, 2.0)) * hdr_moonStr * hdr_relAmbient;
 	if(time > 0.94){
 		ambientColor = mix(nightAmbient, sunriseAmbient, l2_clampScale(0.94, 0.98, time));
 	} else if(time > 0.52){
@@ -191,10 +190,10 @@ vec3 l2_sunColor(float time){
 	return sunColor;
 }
 
-vec3 l2_vanillaSunDir(float time, float zWobble){
+vec3 l2_vanillaSunDir(in float time, float zWobble){
 
-	// wrap time to account  for sunrise
-	time -= time >= 0.75?1:0;
+	// wrap time to account for sunrise
+	time -= (time >= 0.75) ? 1.0 : 0.0;
 
 	// supposed offset of sunset/sunrise from 0/12000 daytime. might get better result with datamining?
 	float sunHorizonDur = 0.04;
@@ -205,8 +204,20 @@ vec3 l2_vanillaSunDir(float time, float zWobble){
 	return normalize(vec3(cos(angleRad), sin(angleRad), zWobble));
 }
 
-vec3 l2_sunLight(float skyLight, float time, float intensity, vec3 normalForLightCalc){
-	float sl = l2_skyLight(skyLight, intensity);
+vec3 l2_sunLight(float skyLight, in float time, float intensity, float rainGradient, vec3 normalForLightCalc){
+
+	// wrap time to account for sunrise
+	float customTime = (time >= 0.75) ? (time - 1.0) : time;
+
+    float customIntensity = l2_clampScale(-0.08, 0.00, customTime);
+
+    if(customTime >= 0.25){
+		customIntensity = l2_clampScale(0.58, 0.5, customTime);
+    }
+
+	customIntensity *= mix(1.0, 0.0, rainGradient);
+
+	float sl = l2_skyLight(skyLight, max(customIntensity, intensity));
 
 	// direct sun light doesn't reach into dark spot as much as sky ambient
 	sl = frx_smootherstep(0.5,1.0,sl);
@@ -214,23 +225,17 @@ vec3 l2_sunLight(float skyLight, float time, float intensity, vec3 normalForLigh
 	// zWobble is added to make more interesting looking diffuse light
 	// TODO: might be fun to use frx_worldDay() with sine wave for the zWobble to simulate annual sun position change
 	sl *= max(0.0, dot(l2_vanillaSunDir(time, hdr_zWobbleDefault), normalForLightCalc));
-
-	if(time > 0.94){
-		sl *= l2_clampScale(0.94, 1.0, time);
-	} else if(time > 0.56){
-		sl *= l2_clampScale(0.56, 0.5, time);
-	}
 	return sl * l2_sunColor(time);
 }
 
 vec3 l2_moonLight(float skyLight, float time, float intensity, vec3 normalForLightCalc){
 	float ml = l2_skyLight(skyLight, intensity) * frx_moonSize() * hdr_moonStr;
-    float aRad = (time - 0.5) * M_2PI;
+    float aRad = l2_clampScale(0.56, 0.94, time) * M_PI;
 	ml *= max(0.0, dot(vec3(cos(aRad), sin(aRad), 0), normalForLightCalc));
-	if(time < 0.56){
-		ml *= l2_clampScale(0.5, 0.56, time);
-	} else if(time > 0.94){
-		ml *= l2_clampScale(1.0, 0.94, time);
+	if(time < 0.58){
+		ml *= l2_clampScale(0.54, 0.58, time);
+	} else if(time > 0.92){
+		ml *= l2_clampScale(0.96, 0.92, time);
 	}
 	return vec3(ml);
 }
@@ -355,7 +360,7 @@ void main() {
 		// If diffuse is disabled (e.g. grass) then the normal points up by default
 		vec3 normalForLightCalc = fragData.diffuse?fragData.vertexNormal*frx_normalModelMatrix():vec3(0,1,0);
 		vec3 block = l2_blockLight(fragData.light.x);
-		vec3 sun = l2_sunLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), normalForLightCalc);
+		vec3 sun = l2_sunLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), frx_rainGradient(), normalForLightCalc);
 		vec3 moon = l2_moonLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), normalForLightCalc);
 		vec3 skyAmbient = l2_skyAmbient(fragData.light.y, frx_worldTime(), frx_ambientIntensity());
 		vec3 emissive = l2_emissiveLight(fragData.emissivity);
