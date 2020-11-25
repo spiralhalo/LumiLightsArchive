@@ -5,7 +5,7 @@
 
 void frx_startFragment(inout frx_FragmentData fragData) {
 
-    fragData.spriteColor.rgb *= fragData.spriteColor.rgb * 0.8;
+    fragData.spriteColor.rgb *= fragData.spriteColor.rgb;
 
     if(fragData.vertexNormal.y > 0.01) {
 		
