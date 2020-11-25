@@ -49,12 +49,6 @@ vec3 hdr_gammaAdjust(vec3 x){
 	return pow(x, vec3(hdr_gamma));
 }
 
-vec3 hdr_reinhardJodieTonemap(in vec3 v) {
-    float l = frx_luminance(v);
-    vec3 tv = v / (1.0f + v);
-    return mix(v / (1.0f + l), tv, tv);
-}
-
 void _cv_startFragment(inout frx_FragmentData data) {
 	int cv_programId = _cv_fragmentProgramId();
 #include canvas:startfragment
@@ -67,12 +61,6 @@ float l2_clampScale(float e0, float e1, float v){
 float l2_max3(vec3 vec){
 	return max(vec.x, max(vec.y, vec.z));
 }
-
-// vec3 l2_what(vec3 rgb){
-// 	return vec3(0.4123910 * rgb.r + 0.3575840 * rgb.g + 0.1804810 * rgb.b,
-// 				0.2126390 * rgb.r + 0.7151690 * rgb.g + 0.0721923 * rgb.b,
-// 				0.0193308 * rgb.r + 0.1191950 * rgb.g + 0.9505320 * rgb.b);
-// }
 
 vec3 l2_blockLight(float blockLight){
 	float bl = l2_clampScale(0.03125, 1.0, blockLight);
@@ -392,7 +380,7 @@ void main() {
 		}
 
 		a.rgb *= hdr_finalMult;
-		a.rgb = pow(hdr_reinhardJodieTonemap(a.rgb), vec3(1.0 / hdr_gamma));
+		a.rgb = pow(frx_toneMap(a.rgb), vec3(1.0 / hdr_gamma));
 
 		// a.rgb = l2_what(a.rgb);
 	}
