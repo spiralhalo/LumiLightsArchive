@@ -1,3 +1,5 @@
+> You are currently in the `film` branch!
+
 # Lumi Lights
 Aesthetic shader for [Canvas](https://github.com/grondag/canvas) that adds directional sky light and ambient light. Lumi Lights aims to replace vanilla lighting as much as possible.
 
