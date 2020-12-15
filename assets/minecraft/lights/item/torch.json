@@ -1,7 +1,8 @@
 {
-    "intensity": 1.2,
-    "red": 1.85,
-    "green": 1.65,
-    "blue": 1.4,
-    "worksInFluid": false
+  "intensity": 0.93,
+  "red": 1.0,
+  "green": 0.875,
+  "blue": 0.75,
+  "worksInFluid": false
 }
+
