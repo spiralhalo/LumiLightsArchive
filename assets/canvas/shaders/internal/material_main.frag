@@ -20,6 +20,9 @@
 #include canvas:shaders/internal/program.glsl
 #include lumi:shaders/api/varying.glsl
 
+// If ww_specular is used, frx_var0 must be reserved for fragPos and frx_var1 must be reserved for cameraPos
+float ww_specular;
+
 #include canvas:apitarget
 
 /******************************************************
@@ -28,9 +31,10 @@
 
 #define M_PI 3.1415926535897932384626433832795
 
-const float hdr_sunStr = 3;
+const float hdr_sunStr = 2;
 const float hdr_moonStr = 0.4;
-const float hdr_blockStr = 1.5;
+const float hdr_blockMinStr = 1.0;
+const float hdr_blockMaxStr = 1.4;
 const float hdr_handHeldStr = 0.9;
 const float hdr_skylessStr = 0.2;
 const float hdr_baseMinStr = 0.0;
@@ -73,9 +77,9 @@ float l2_max3(vec3 vec){
 // 				0.0193308 * rgb.r + 0.1191950 * rgb.g + 0.9505320 * rgb.b);
 // }
 
-vec3 l2_blockLight(float blockLight){
+vec3 l2_blockLight(float blockLight, float userBrightness){
 	float bl = l2_clampScale(0.03125, 1.0, blockLight);
-	bl *= bl * hdr_blockStr;
+	bl *= bl * mix(hdr_blockMinStr, hdr_blockMaxStr, userBrightness);
 	vec3 block = hdr_gammaAdjust(vec3(bl, bl*0.875, bl*0.75));
 	
 #if HANDHELD_LIGHT_RADIUS != 0
@@ -123,24 +127,6 @@ vec3 l2_skyAmbient(float skyLight, float time, float intensity){
 	return sa * l2_ambientColor(time);
 }
 
-float l2_userBrightness(){
-	float base = texture2D(frxs_lightmap, vec2(0.03125, 0.03125)).r;
-	// if(frx_isWorldTheNether()){
-	// 	return smoothstep(0.15/*0.207 no true darkness in nether*/, 0.577, base);
-	// } else if (frx_isWorldTheEnd(){
-	// 	return smoothstep(0.18/*0.271 no true darkness in the end*/, 0.685, base);
-	// } else {
-	// 	return smoothstep(0.053, 0.135, base);
-	// }
-
-	// Simplify nether/the end check
-	if(frx_worldHasSkylight()){
-		return smoothstep(0.053, 0.135, base);
-	} else {
-		return smoothstep(0.15, 0.63, base);
-	}
-}
-
 vec3 l2_skylessLightColor(){
 	return hdr_gammaAdjust(vec3(1.0));
 }
@@ -161,21 +147,21 @@ vec3 l2_dimensionColor(){
 	}
 }
 
-vec3 l2_skylessLight(vec3 normal){
+vec3 l2_skylessLight(vec3 normal, float userBrightness){
 	if(frx_worldHasSkylight()){
 		return vec3(0);
 	} else {
 		float yalign = dot(normal,vec3(0, 0.977358, 0.211593)); // a bit towards z for more interesting effect
 		yalign = frx_isSkyDarkened()?abs(yalign):max(0,yalign);
-		return yalign * hdr_skylessStr * l2_skylessLightColor() * l2_userBrightness();
+		return yalign * hdr_skylessStr * l2_skylessLightColor() * userBrightness;
 	}
 }
 
-vec3 l2_baseAmbient(){
+vec3 l2_baseAmbient(float userBrightness){
 	if(frx_worldHasSkylight()){
-		return vec3(0.1) * mix(hdr_baseMinStr, hdr_baseMaxStr, l2_userBrightness());
+		return vec3(0.1) * mix(hdr_baseMinStr, hdr_baseMaxStr, userBrightness);
 	} else {
-		return l2_dimensionColor() * mix(hdr_baseMinStr, hdr_baseMaxStr, l2_userBrightness());
+		return l2_dimensionColor() * mix(hdr_baseMinStr, hdr_baseMaxStr, userBrightness);
 	}
 }
 
@@ -258,7 +244,7 @@ float l2_specular(float time, vec3 aNormal, vec3 aPos, vec3 cameraPos, float pow
     vec3 viewDir = normalize(cameraPos - aPos);
 
     // calculate the specular light
-    return pow(max(0.0, dot(reflect(-sunDir, aNormal), viewDir)),power);
+    return pow(max(0.0, dot(reflect(-sunDir, aNormal), viewDir)), power);
 }
 
 float l2_ao(frx_FragmentData fragData) {
@@ -271,6 +257,12 @@ float l2_ao(frx_FragmentData fragData) {
 }
 
 void main() {
+#ifndef PROGRAM_BY_UNIFORM
+	if (_cv_programDiscard()) {
+		discard;
+	}
+#endif
+
 	frx_FragmentData fragData = frx_FragmentData (
 	texture2D(frxs_spriteAltas, _cvv_texcoord, _cv_getFlag(_CV_FLAG_UNMIPPED) * -4.0),
 	_cvv_color,
@@ -280,6 +272,8 @@ void main() {
 	_cvv_normal,
 	_cvv_lightcoord
 	);
+
+	ww_specular = 0;
 
 	_cv_startFragment(fragData);
 
@@ -297,22 +291,37 @@ void main() {
 	} else {
 		a.rgb = hdr_gammaAdjust(a.rgb);
 
+		float userBrightness;
+		float base = texture2D(frxs_lightmap, vec2(0.03125, 0.03125)).r;
+		if(frx_worldHasSkylight()){
+			userBrightness = smoothstep(0.053, 0.135, base);
+		} else {
+			// if(frx_isWorldTheNether()){
+			// 	return smoothstep(0.15/*0.207 no true darkness in nether*/, 0.577, base);
+			// } else if (frx_isWorldTheEnd(){
+			// 	return smoothstep(0.18/*0.271 no true darkness in the end*/, 0.685, base);
+			// }
+			// Simplify for both the nether and the end
+			userBrightness = smoothstep(0.15, 0.63, base);
+		}
+
 		// If diffuse is disabled (e.g. grass) then the normal points up by default
 		float ao = l2_ao(fragData);
 		vec3 diffuseNormal = fragData.diffuse?fragData.vertexNormal * frx_normalModelMatrix():vec3(0,1,0);
-		vec3 block = l2_blockLight(fragData.light.x);
+		vec3 block = l2_blockLight(fragData.light.x, userBrightness);
 		vec3 sun = l2_sunLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), frx_rainGradient(), diffuseNormal);
 		vec3 moon = l2_moonLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), diffuseNormal);
 		vec3 skyAmbient = l2_skyAmbient(fragData.light.y, frx_worldTime(), frx_ambientIntensity());
 		vec3 emissive = l2_emissiveLight(fragData.emissivity);
-		vec3 nether = l2_skylessLight(diffuseNormal);
+		vec3 skyless = l2_skylessLight(diffuseNormal, userBrightness);
+		vec3 baseAmbient = l2_baseAmbient(userBrightness);
 
-		vec3 light = block + moon + l2_baseAmbient() + skyAmbient + sun + nether;
+		vec3 light = baseAmbient + block + moon + skyAmbient + sun + skyless;
 		light *= ao; // AO is supposed to be applied to ambient only, but things look better with AO on everything except for emissive light
 		light += emissive;
 		
 		vec3 specular = vec3(0.0);
-		if (wwv_specPower > 0.01) {
+		if (ww_specular > 0) {
 			vec3 specularNormal = fragData.vertexNormal * frx_normalModelMatrix();
 
 			float skyAccess = smoothstep(0.89, 1.0, fragData.light.y);
@@ -322,17 +331,17 @@ void main() {
 			vec3 sunDir = l2_vanillaSunDir(frx_worldTime(), 0);
 			vec3 sun = l2_sunLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), frx_rainGradient(), sunDir);
 
-			float specularAmount = l2_specular(frx_worldTime(), specularNormal, fragPos, cameraPos, wwv_specPower);
+			float specularAmount = l2_specular(frx_worldTime(), specularNormal, fragPos, cameraPos, ww_specular);
 
 			specular = sun * specularAmount * skyAccess;
+
+			float specularLuminance = frx_luminance(specular);
+			a.a += specularLuminance;
+			bloom += specularLuminance;
 		}
 
 		a.rgb *= light;
 		a.rgb += specular;
-
-		float specularLuminance = frx_luminance(specular);
-		a.a += specularLuminance;
-		bloom += specularLuminance;
 
 		a.rgb *= hdr_finalMult;
 		a.rgb = pow(hdr_vibrantTonemap(a.rgb), vec3(1.0 / hdr_gamma));
