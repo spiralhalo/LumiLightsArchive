@@ -36,8 +36,6 @@ void main() {
 	// due to FP error on some cards/drivers.  Also made varying attribute invariant (rolls eyes at OpenGL)
 	_cvv_flags = uint(in_normal_flags.w + 0.5);
 
-    wwv_specPower = 0.0;
-
 	_cv_setupProgram();
 
 	int cv_programId = _cv_vertexProgramId();
