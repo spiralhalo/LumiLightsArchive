@@ -3,9 +3,9 @@ Aesthetic shader for [Canvas](https://github.com/grondag/canvas) that adds direc
 
 ### Features list
 - Bluish ambiance during the day in the overworld, purplish in the End, and fog-colored in the nether.
-- Clearer and shinier water.
 - Brighter sun with directional light.
-- Bloom on the sky
+- Clearer and shinier water.
+- Bloom on the sky.
 
 ## License
 Lumi Lights is released under the terms of the GNU Lesser General Public License version 3.0. See the files `COPYING` and `COPYING.LESSER` for more information.
