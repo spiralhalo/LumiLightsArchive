@@ -69,7 +69,7 @@ void frx_startFragment(inout frx_FragmentData fragData) {
 	vec3 moveSpeed = vec3(0.5, 1.5, -0.5);
 	// const float texAmplitude = 0.005;
     vec3 up = fragData.vertexNormal.xyz;// * (1.0 + texAmplitude);
-	vec3 samplePos = frx_var0.xyz;
+	vec3 samplePos = frx_var0.xyz + frx_modelOriginWorldPos();
 	// samplePos = floor(samplePos) + floor(fract(samplePos) * 16) / 16;
 	fragData.vertexNormal = ww_normals(up, samplePos, waveSpeed, scale, amplitude, stretch, moveSpeed);
 }
