@@ -20,6 +20,9 @@
 #include canvas:shaders/internal/program.glsl
 #include lumi:shaders/api/varying.glsl
 
+// If ww_specular is used, frx_var0 must be reserved for fragPos and frx_var1 must be reserved for cameraPos
+float ww_specular;
+
 #include canvas:apitarget
 
 /******************************************************
@@ -165,7 +168,7 @@ vec3 l2_baseAmbient(float userBrightness){
 }
 
 vec3 l2_sunColor(float time){
-	vec3 sunColor = hdr_gammaAdjust(vec3(1.0, 1.0, 0.8)) * hdr_sunStr;
+	vec3 sunColor = hdr_gammaAdjust(vec3(1.0, 1.0, 0.9)) * hdr_sunStr;
 	vec3 sunriseColor = hdr_gammaAdjust(vec3(1.0, 0.8, 0.4)) * hdr_sunStr * hdr_relSunHorizon;
 	vec3 sunsetColor = hdr_gammaAdjust(vec3(1.0, 0.6, 0.4)) * hdr_sunStr * hdr_relSunHorizon;
 	if(time > 0.94){
@@ -243,7 +246,7 @@ float l2_specular(float time, vec3 aNormal, vec3 aPos, vec3 cameraPos, float pow
     vec3 viewDir = normalize(cameraPos - aPos);
 
     // calculate the specular light
-    return pow(max(0.0, dot(reflect(-sunDir, aNormal), viewDir)),power);
+    return pow(max(0.0, dot(reflect(-sunDir, aNormal), viewDir)), power);
 }
 
 float l2_ao(frx_FragmentData fragData) {
@@ -265,6 +268,8 @@ void main() {
 	_cvv_normal,
 	_cvv_lightcoord
 	);
+
+	ww_specular = 0;
 
 	_cv_startFragment(fragData);
 
@@ -312,7 +317,7 @@ void main() {
 		light += emissive;
 		
 		vec3 specular = vec3(0.0);
-		if (wwv_specPower > 0.01) {
+		if (ww_specular > 0) {
 			vec3 specularNormal = fragData.vertexNormal * frx_normalModelMatrix();
 
 			float skyAccess = smoothstep(0.89, 1.0, fragData.light.y);
@@ -322,17 +327,17 @@ void main() {
 			vec3 sunDir = l2_vanillaSunDir(frx_worldTime(), 0);
 			vec3 sun = l2_sunLight(fragData.light.y, frx_worldTime(), frx_ambientIntensity(), frx_rainGradient(), sunDir);
 
-			float specularAmount = l2_specular(frx_worldTime(), specularNormal, fragPos, cameraPos, wwv_specPower);
+			float specularAmount = l2_specular(frx_worldTime(), specularNormal, fragPos, cameraPos, ww_specular);
 
 			specular = sun * specularAmount * skyAccess;
+
+			float specularLuminance = frx_luminance(specular);
+			a.a += specularLuminance;
+			bloom += specularLuminance;
 		}
 
 		a.rgb *= light;
 		a.rgb += specular;
-
-		float specularLuminance = frx_luminance(specular);
-		a.a += specularLuminance;
-		bloom += specularLuminance;
 
 		a.rgb *= hdr_finalMult;
 		a.rgb = pow(hdr_reinhardJodieTonemap(a.rgb), vec3(1.0 / hdr_gamma));
