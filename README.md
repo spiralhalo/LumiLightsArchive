@@ -1,4 +1,9 @@
 # Lumi Lights
+
+**Lumi Lights repo has been moved to [LumiLightsPBR](https://github.com/spiralhalo/LumiLightsPBR)**
+
+---
+
 Aesthetic shader for [Canvas](https://github.com/grondag/canvas) that adds directional sky light and ambient light. Lumi Lights aims to replace vanilla lighting as much as possible.
 
 ### Features list
@@ -10,7 +15,5 @@ Aesthetic shader for [Canvas](https://github.com/grondag/canvas) that adds direc
 ## License
 Lumi Lights is released under the terms of the GNU Lesser General Public License version 3.0. See the files `COPYING` and `COPYING.LESSER` for more information.
 Parts of its source code is derived from Canvas which is released under the Apache License version 2.0.
-
-[Also available in the more performance intensive PBR variant.](https://github.com/spiralhalo/LumiLightsPBR)
 
 Have some questions? [Join the Lumi Lights discord.](https://discord.gg/qcyBfhxkgk)
